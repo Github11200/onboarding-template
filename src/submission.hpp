@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <vector>
 
 // Starter Grid for the 2D heat-diffusion problem.
 //
@@ -11,12 +12,21 @@ class Grid {
 private:
   std::size_t rows_;
   std::size_t cols_;
+  std::vector<std::vector<double>> grid;
 
 public:
-  Grid(std::size_t rows, std::size_t cols);
+  Grid(std::size_t rows, std::size_t cols) {
+    this->rows_ = rows;
+    this->cols_ = cols;
+    this->grid = std::vector<std::vector<double>>(rows, std::vector<double>(cols, 0));
+  }
 
-  double& operator()(std::size_t i, std::size_t j);
-  double  operator()(std::size_t i, std::size_t j) const;
+  double& operator()(std::size_t i, std::size_t j) {
+    return grid[i][j];
+  }
+  double  operator()(std::size_t i, std::size_t j) const {
+    return grid[i][j];
+  }
 };  
 
 // Apply the five-point stencil over all interior points, copying the boundary
