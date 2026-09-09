@@ -29,9 +29,6 @@ public:
 
   size_t rows() const { return this->rows_; }
   size_t cols() const { return this->cols_; }
-
-  double *data() { return this->grid_.data(); }
-  const double *data() const { return this->grid_.data(); }
 };
 
 // Apply the five-point stencil over all interior points, copying the boundary
@@ -41,23 +38,20 @@ void apply_stencil(const Grid &old_grid, Grid &new_grid)
   size_t rows = old_grid.rows();
   size_t cols = old_grid.cols();
 
-  const double *old_grid_data = old_grid.data();
-  double *new_grid_data = new_grid.data();
-
 // Boundary on the left and right
 #pragma omp parallel for
   for (int i = 0; i < rows; ++i)
   {
-    new_grid_data[i * cols] = old_grid_data[i * cols];
-    new_grid_data[i * cols + cols - 1] = old_grid_data[i * cols + cols - 1];
+    new_grid(i, 0) = old_grid(i, 0);
+    new_grid(i, cols - 1) = old_grid(i, cols - 1);
   }
 
 // Bondary on the top and bottom
 #pragma omp parallel for
   for (int i = 0; i < cols; ++i)
   {
-    new_grid_data[i] = old_grid_data[i];
-    new_grid_data[(rows - 1) * cols + i] = old_grid_data[(rows - 1) * cols + i];
+    new_grid(0, i) = old_grid(0, i);
+    new_grid(rows - 1, i) = old_grid(rows - 1, i);
   }
 
 // Go through all the cells in the interior
@@ -66,9 +60,9 @@ void apply_stencil(const Grid &old_grid, Grid &new_grid)
   {
     for (int j = 1; j < cols - 1; ++j)
     {
-      new_grid_data[i * cols + j] = 0.5 * old_grid_data[i * cols + j] +
-                                    0.125 * (old_grid_data[(i - 1) * cols + j] + old_grid_data[(i + 1) * cols + j] +
-                                             old_grid_data[i * cols + j - 1] + old_grid_data[i * cols + j + 1]);
+      new_grid(i, j) = 0.5 * old_grid(i, j) +
+                       0.125 * (old_grid(i - 1, j) + old_grid(i + 1, j) +
+                                old_grid(i, j - 1) + old_grid(i, j + 1));
     }
   }
 }
