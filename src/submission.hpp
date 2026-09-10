@@ -29,6 +29,9 @@ public:
 
   size_t rows() const { return this->rows_; }
   size_t cols() const { return this->cols_; }
+
+  const double *data() const { return this->grid_.data(); }
+  double *data() { return this->grid_.data(); }
 };
 
 // Apply the five-point stencil over all interior points, copying the boundary
@@ -38,31 +41,37 @@ void apply_stencil(const Grid &old_grid, Grid &new_grid)
   size_t rows = old_grid.rows();
   size_t cols = old_grid.cols();
 
-// Boundary on the left and right
-#pragma omp parallel for
-  for (int i = 0; i < rows; ++i)
-  {
-    new_grid(i, 0) = old_grid(i, 0);
-    new_grid(i, cols - 1) = old_grid(i, cols - 1);
-  }
+  const double *__restrict__ old_grid_data = old_grid.data();
+  double *__restrict__ new_grid_data = new_grid.data();
 
-// Bondary on the top and bottom
-#pragma omp parallel for
-  for (int i = 0; i < cols; ++i)
+#pragma omp parallel
   {
-    new_grid(0, i) = old_grid(0, i);
-    new_grid(rows - 1, i) = old_grid(rows - 1, i);
-  }
-
-// Go through all the cells in the interior
-#pragma omp parallel for
-  for (int i = 1; i < rows - 1; ++i)
-  {
-    for (int j = 1; j < cols - 1; ++j)
+#pragma omp for nowait
+    for (std::size_t i = 0; i < rows; ++i)
     {
-      new_grid(i, j) = 0.5 * old_grid(i, j) +
-                       0.125 * (old_grid(i - 1, j) + old_grid(i + 1, j) +
-                                old_grid(i, j - 1) + old_grid(i, j + 1));
+      std::size_t row = i * cols;
+      new_grid_data[row] = old_grid_data[row];
+      new_grid_data[row + cols - 1] = old_grid_data[row + cols - 1];
+    }
+
+#pragma omp for
+    for (std::size_t j = 0; j < cols; ++j)
+    {
+      new_grid_data[j] = old_grid_data[j];
+      new_grid_data[(rows - 1) * cols + j] = old_grid_data[(rows - 1) * cols + j];
+    }
+
+#pragma omp for
+    for (std::size_t i = 1; i < rows - 1; ++i)
+    {
+      std::size_t row = i * cols;
+#pragma omp simd
+      for (std::size_t j = 1; j < cols - 1; ++j)
+      {
+        new_grid_data[row + j] = 0.5 * old_grid_data[row + j] +
+                                 0.125 * (old_grid_data[row - cols + j] + old_grid_data[row + cols + j] +
+                                          old_grid_data[row + j - 1] + old_grid_data[row + j + 1]);
+      }
     }
   }
 }
