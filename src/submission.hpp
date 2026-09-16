@@ -46,7 +46,7 @@ void apply_stencil(const Grid &old_grid, Grid &new_grid)
 
 #pragma omp parallel
   {
-#pragma omp for nowait
+#pragma omp for
     for (std::size_t i = 0; i < rows; ++i)
     {
       std::size_t row = i * cols;
